@@ -1,199 +1,172 @@
--- MVS Hack Menu (Silent Aim + Reliable ESP + Clean Mobile UI)
--- No Triggerbot. Rebuilt by request.
+-- Bloodware UI - Modern Purple & White Theme
+-- Fully Restyled UI with Mobile Support
 
+-- Services
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
+local RunService = game:GetService("RunService")
 
--- UI Colors
-local purple = Color3.fromRGB(140, 0, 255)
-local white = Color3.fromRGB(255, 255, 255)
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
--- UI Base
-local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "MVS_UI"
-gui.ResetOnSpawn = false
+-- UI Library
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BloodwareUI"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
 
--- Toggle button (Draggable)
-local toggleBtn = Instance.new("TextButton", gui)
-toggleBtn.Size = UDim2.new(0, 60, 0, 30)
-toggleBtn.Position = UDim2.new(0, 10, 0.5, -15)
-toggleBtn.Text = "MVS"
-toggleBtn.TextColor3 = white
-toggleBtn.BackgroundColor3 = purple
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 16
-toggleBtn.Active = true
-toggleBtn.Draggable = true
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MainFrame.BorderSizePixel = 0
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Parent = ScreenGui
 
--- Main Frame
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 400, 0, 320)
-frame.Position = UDim2.new(0, 80, 0.5, -160)
-frame.BackgroundColor3 = purple
-frame.Visible = false
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
 
-local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1, -20, 1, -20)
-scroll.Position = UDim2.new(0, 10, 0, 10)
-scroll.CanvasSize = UDim2.new(0, 0, 2, 0)
-scroll.ScrollBarThickness = 5
-scroll.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel")
+Title.Text = "Bloodware Hub"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.TextColor3 = Color3.fromRGB(85, 0, 127)
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Parent = MainFrame
 
-local layout = Instance.new("UIListLayout", scroll)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 6)
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = MainFrame
 
--- Button Helper
-local function createButton(text, callback)
-    local b = Instance.new("TextButton", scroll)
-    b.Size = UDim2.new(1, -10, 0, 40)
-    b.Text = text
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 16
-    b.TextColor3 = white
-    b.BackgroundColor3 = Color3.fromRGB(100, 0, 180)
-    b.BorderSizePixel = 0
-    b.MouseButton1Click:Connect(callback)
-    return b
+local Container = Instance.new("ScrollingFrame")
+Container.Size = UDim2.new(1, -20, 1, -60)
+Container.Position = UDim2.new(0, 10, 0, 50)
+Container.BackgroundTransparency = 1
+Container.CanvasSize = UDim2.new(0, 0, 0, 0)
+Container.ScrollBarThickness = 6
+Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Container.Parent = MainFrame
+
+local function createToggle(labelText, callback)
+    local toggle = Instance.new("Frame")
+    toggle.Size = UDim2.new(1, 0, 0, 30)
+    toggle.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel")
+    label.Text = labelText
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 16
+    label.TextColor3 = Color3.fromRGB(40, 40, 40)
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, -40, 1, 0)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = toggle
+
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 30, 0, 20)
+    button.Position = UDim2.new(1, -30, 0.5, -10)
+    button.Text = "Off"
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 14
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.BackgroundColor3 = Color3.fromRGB(170, 85, 255)
+    button.AutoButtonColor = false
+    button.Parent = toggle
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+
+    local toggled = false
+    button.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        button.Text = toggled and "On" or "Off"
+        callback(toggled)
+    end)
+
+    toggle.Parent = Container
 end
 
--- ESP Setup
-local espOn = false
-local espColor = Color3.fromRGB(255, 0, 0)
-local highlights = {}
+local function createSlider(labelText, min, max, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 0, 40)
+    frame.BackgroundTransparency = 1
 
-local function updateESP()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if not highlights[player.Name] then
-                local hl = Instance.new("Highlight", gui)
-                hl.Name = "ESP_" .. player.Name
-                hl.Adornee = player.Character
-                hl.FillColor = espColor
-                hl.FillTransparency = 0.6
-                hl.OutlineColor = white
-                highlights[player.Name] = hl
-            else
-                highlights[player.Name].Adornee = player.Character
+    local label = Instance.new("TextLabel")
+    label.Text = labelText .. ": " .. tostring(min)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 16
+    label.TextColor3 = Color3.fromRGB(40, 40, 40)
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 0.5, 0)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local slider = Instance.new("TextButton")
+    slider.Size = UDim2.new(1, 0, 0.3, 0)
+    slider.Position = UDim2.new(0, 0, 0.6, 0)
+    slider.BackgroundColor3 = Color3.fromRGB(170, 85, 255)
+    slider.Text = ""
+    slider.AutoButtonColor = false
+    slider.Parent = frame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = slider
+
+    local value = min
+    slider.MouseButton1Down:Connect(function()
+        local conn
+        conn = RunService.RenderStepped:Connect(function()
+            local scale = math.clamp((mouse.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+            value = math.floor(min + (max - min) * scale)
+            label.Text = labelText .. ": " .. tostring(value)
+            callback(value)
+        end)
+        UserInputService.InputEnded:Wait()
+        conn:Disconnect()
+    end)
+
+    frame.Parent = Container
+end
+
+-- Example Feature Bindings
+createToggle("ESP", function(state)
+    print("ESP toggled:", state)
+end)
+
+createToggle("Silent Aim", function(state)
+    print("Silent Aim toggled:", state)
+end)
+
+createSlider("Hitbox Size", 1, 30, function(value)
+    print("Hitbox size set to:", value)
+end)
+
+-- Dragging Support
+local dragging, dragInput, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
-        end
-    end
-end
-
-local function clearESP()
-    for _, v in pairs(highlights) do
-        v:Destroy()
-    end
-    highlights = {}
-end
-
-RunService.RenderStepped:Connect(function()
-    if espOn then
-        updateESP()
-    else
-        clearESP()
+        end)
     end
 end)
 
--- Hitbox Expander
-local hitboxSize = 2
-RunService.RenderStepped:Connect(function()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = p.Character.HumanoidRootPart
-            hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-            hrp.Material = Enum.Material.ForceField
-            hrp.Transparency = 0.5
-        end
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-
--- Silent Aim Logic (Gun & Knife Redirect)
-local silentAim = false
-
-local function getClosestTarget()
-    local closest, dist = nil, math.huge
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local pos, visible = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-            if visible then
-                local diff = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if diff < dist then
-                    dist = diff
-                    closest = p
-                end
-            end
-        end
-    end
-    return closest
-end
-
--- Hook for Silent Aim (tool click)
-Mouse.Button1Down:Connect(function()
-    if not silentAim then return end
-    local target = getClosestTarget()
-    if not target then return end
-
-    -- Try to detect weapon
-    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if not tool then return end
-
-    local remote = tool:FindFirstChildWhichIsA("RemoteEvent") or tool:FindFirstChildWhichIsA("RemoteFunction")
-    if remote then
-        local hrp = target.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local pos = hrp.Position
-            -- Fire remote (generic handler)
-            if remote:IsA("RemoteEvent") then
-                remote:FireServer(pos, hrp)
-            elseif remote:IsA("RemoteFunction") then
-                remote:InvokeServer(pos, hrp)
-            end
-        end
-    end
-end)
-
--- Buttons
-createButton("Toggle Silent Aim", function()
-    silentAim = not silentAim
-end)
-
-createButton("Toggle ESP", function()
-    espOn = not espOn
-end)
-
-createButton("Set ESP Color: Purple", function()
-    espColor = purple
-end)
-
-createButton("Set ESP Color: Red", function()
-    espColor = Color3.fromRGB(255, 0, 0)
-end)
-
-createButton("Set ESP Color: Blue", function()
-    espColor = Color3.fromRGB(0, 100, 255)
-end)
-
-createButton("Set ESP Color: Green", function()
-    espColor = Color3.fromRGB(0, 255, 100)
-end)
-
-createButton("Increase Hitbox Size", function()
-    hitboxSize = math.clamp(hitboxSize + 1, 2, 10)
-end)
-
-createButton("Reset Hitbox", function()
-    hitboxSize = 2
-end)
-
--- Toggle GUI
-toggleBtn.MouseButton1Click:Connect(function()
-    frame.Visible = not frame.Visible
-end)
-
-print("✅ MVS Hack Menu loaded. Clean UI. Working ESP + Silent Aim.")
