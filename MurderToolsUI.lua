@@ -7,9 +7,12 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 
--- GUI Setup
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+-- GUI Setup (mobile-safe)
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MurderToolsGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
 local toggleButton = Instance.new("ImageButton", ScreenGui)
 toggleButton.Size = UDim2.new(0, 50, 0, 50)
 toggleButton.Position = UDim2.new(0, 10, 0, 200)
@@ -146,4 +149,3 @@ createButton("Toggle Hitbox", toggleHitbox)
 createButton("Toggle ESP", toggleESP)
 createButton("Toggle Silent Aim", toggleSilentAim)
 createButton("Toggle Aimbot Assist", toggleAimbotAssist)
-Add script
