@@ -1,67 +1,108 @@
--- MVS Hack Menu - Updated for Murderers VS Sheriffs: DUELS
--- Features: Toggleable ESP, ESP color picker, hitbox expander, redesigned UI, and Silent Aim base hook
+-- Bloodware-Inspired UI for MVS Hack Script (Purple/White Theme)
+-- Mobile draggable, scrollable, and touch-friendly
+-- Tabs: Silent Aim, ESP, HBE
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
 
--- UI Colors
-local primaryColor = Color3.fromRGB(140, 0, 255) -- Purple background
-local textColor = Color3.new(1, 1, 1) -- White text
+-- Main GUI setup
+local gui = Instance.new("ScreenGui")
+gui.Name = "MVS_BloodwareUI"
+gui.ResetOnSpawn = false
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- GUI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MVS_Menu"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Color theme
+local purple = Color3.fromRGB(140, 0, 255)
+local white = Color3.fromRGB(255, 255, 255)
 
-local toggleButton = Instance.new("TextButton", screenGui)
-toggleButton.Text = "MVS"
+-- Draggable MVS button
+local toggleButton = Instance.new("TextButton", gui)
 toggleButton.Size = UDim2.new(0, 60, 0, 30)
 toggleButton.Position = UDim2.new(0, 10, 0.5, -15)
-toggleButton.BackgroundColor3 = primaryColor
-toggleButton.TextColor3 = textColor
-toggleButton.Font = Enum.Font.SourceSansBold
-toggleButton.TextSize = 20
+toggleButton.Text = "MVS"
+toggleButton.BackgroundColor3 = purple
+toggleButton.TextColor3 = white
+toggleButton.TextSize = 18
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.BorderSizePixel = 0
 
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 380, 0, 350)
-mainFrame.Position = UDim2.new(0, 80, 0.5, -175)
-mainFrame.BackgroundColor3 = primaryColor
+-- Drag logic
+local dragging, dragInput, dragStart, startPos
+toggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = toggleButton.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        toggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Main Frame
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 420, 0, 320)
+mainFrame.Position = UDim2.new(0, 80, 0.5, -160)
+mainFrame.BackgroundColor3 = purple
 mainFrame.Visible = false
+mainFrame.BorderSizePixel = 0
 
-local layout = Instance.new("UIListLayout", mainFrame)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 10)
+-- Sidebar
+local sidebar = Instance.new("Frame", mainFrame)
+sidebar.Size = UDim2.new(0, 100, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(110, 0, 200)
+sidebar.BorderSizePixel = 0
 
--- Helper functions
-local function createButton(text, parent, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Text = text
-    btn.Size = UDim2.new(1, -20, 0, 35)
-    btn.BackgroundColor3 = Color3.fromRGB(80, 0, 150)
-    btn.TextColor3 = textColor
-    btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 18
+-- Tab buttons
+local tabButtons = {}
+local function createSidebarButton(name, callback)
+    local btn = Instance.new("TextButton", sidebar)
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Text = name
+    btn.TextColor3 = white
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 16
+    btn.BackgroundTransparency = 1
     btn.MouseButton1Click:Connect(callback)
-    return btn
+    table.insert(tabButtons, btn)
 end
 
-local function createLabel(text, parent)
-    local label = Instance.new("TextLabel", parent)
-    label.Size = UDim2.new(1, -20, 0, 25)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = textColor
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 18
-    return label
+-- Scrollable content area
+local contentFrame = Instance.new("ScrollingFrame", mainFrame)
+contentFrame.Position = UDim2.new(0, 110, 0, 10)
+contentFrame.Size = UDim2.new(1, -120, 1, -20)
+contentFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
+contentFrame.ScrollBarThickness = 6
+contentFrame.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", contentFrame)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 8)
+
+-- Button helper
+local function createActionButton(label, func)
+    local btn = Instance.new("TextButton", contentFrame)
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Text = label
+    btn.TextColor3 = white
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 16
+    btn.BackgroundColor3 = Color3.fromRGB(100, 0, 180)
+    btn.BorderSizePixel = 0
+    btn.MouseButton1Click:Connect(func)
 end
 
--- ESP Logic
+-- ESP Setup
 local espEnabled = false
 local espColor = Color3.fromRGB(255, 0, 0)
 local espBoxes = {}
@@ -70,47 +111,29 @@ local function updateESP()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             if not espBoxes[player.Name] then
-                local box = Instance.new("Highlight", screenGui)
-                box.Name = "ESP_Highlight"
-                box.Adornee = player.Character
-                box.FillColor = espColor
-                box.FillTransparency = 0.7
-                box.OutlineColor = Color3.new(1, 1, 1)
-                box.OutlineTransparency = 0
-                espBoxes[player.Name] = box
-            else
-                espBoxes[player.Name].FillColor = espColor
+                local h = Instance.new("Highlight", gui)
+                h.Adornee = player.Character
+                h.FillColor = espColor
+                h.FillTransparency = 0.6
+                h.OutlineColor = white
+                espBoxes[player.Name] = h
             end
         end
     end
 end
 
 local function disableESP()
-    for _, box in pairs(espBoxes) do
-        if box then box:Destroy() end
+    for _, h in pairs(espBoxes) do
+        if h then h:Destroy() end
     end
     espBoxes = {}
 end
 
 RunService.RenderStepped:Connect(function()
-    if espEnabled then
-        updateESP()
-    else
-        disableESP()
-    end
+    if espEnabled then updateESP() else disableESP() end
 end)
 
--- Color Picker Logic
-local function setESPColor(color)
-    espColor = color
-    for _, box in pairs(espBoxes) do
-        if box and box:IsA("Highlight") then
-            box.FillColor = color
-        end
-    end
-end
-
--- Hitbox Expander
+-- Hitbox
 local hitboxSize = 2
 RunService.RenderStepped:Connect(function()
     for _, player in pairs(Players:GetPlayers()) do
@@ -123,17 +146,17 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Silent Aim Hook
+-- Silent Aim
 local silentAim = false
-local function getClosestTarget()
+local function getTarget()
     local closest, dist = nil, math.huge
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local pos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
             if onScreen then
-                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if distance < dist then
-                    dist = distance
+                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mag < dist then
+                    dist = mag
                     closest = player
                 end
             end
@@ -142,46 +165,60 @@ local function getClosestTarget()
     return closest
 end
 
--- Inject aim assist by redirecting attacks
 Mouse.Button1Down:Connect(function()
     if silentAim then
-        local target = getClosestTarget()
+        local target = getTarget()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             Mouse.Target = target.Character.HumanoidRootPart
         end
     end
 end)
 
--- GUI Controls
-createLabel("Main Controls", mainFrame)
+-- Sidebar tabs
+createSidebarButton("Silent Aim", function()
+    contentFrame:ClearAllChildren()
+    layout = Instance.new("UIListLayout", contentFrame)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
 
-createButton("Toggle ESP", mainFrame, function()
-    espEnabled = not espEnabled
+    createActionButton("Toggle Silent Aim", function()
+        silentAim = not silentAim
+    end)
 end)
 
-createLabel("Select ESP Color", mainFrame)
+createSidebarButton("ESP", function()
+    contentFrame:ClearAllChildren()
+    layout = Instance.new("UIListLayout", contentFrame)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
 
-createButton("Purple", mainFrame, function() setESPColor(Color3.fromRGB(140, 0, 255)) end)
-createButton("Red", mainFrame, function() setESPColor(Color3.fromRGB(255, 0, 0)) end)
-createButton("Blue", mainFrame, function() setESPColor(Color3.fromRGB(0, 100, 255)) end)
-createButton("Green", mainFrame, function() setESPColor(Color3.fromRGB(0, 255, 100)) end)
-
-createLabel("Hitbox Controls", mainFrame)
-
-createButton("Increase Hitbox", mainFrame, function()
-    hitboxSize = math.clamp(hitboxSize + 1, 2, 10)
-end)
-createButton("Reset Hitbox", mainFrame, function()
-    hitboxSize = 2
-end)
-
-createLabel("Silent Aim", mainFrame)
-
-createButton("Toggle Silent Aim", mainFrame, function()
-    silentAim = not silentAim
+    createActionButton("Toggle ESP", function()
+        espEnabled = not espEnabled
+    end)
+    createActionButton("Purple", function() espColor = Color3.fromRGB(140, 0, 255) end)
+    createActionButton("Red", function() espColor = Color3.fromRGB(255, 0, 0) end)
+    createActionButton("Blue", function() espColor = Color3.fromRGB(0, 100, 255) end)
+    createActionButton("Green", function() espColor = Color3.fromRGB(0, 255, 100) end)
 end)
 
--- Toggle visibility
+createSidebarButton("HBE", function()
+    contentFrame:ClearAllChildren()
+    layout = Instance.new("UIListLayout", contentFrame)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+
+    createActionButton("Increase Hitbox", function()
+        hitboxSize = math.clamp(hitboxSize + 1, 2, 10)
+    end)
+    createActionButton("Reset Hitbox", function()
+        hitboxSize = 2
+    end)
+end)
+
+-- Toggle GUI
 toggleButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
+
+-- Load default tab
+tabButtons[1].MouseButton1Click:Fire()
