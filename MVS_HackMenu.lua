@@ -1,163 +1,131 @@
--- Bloodware-Inspired UI for MVS Hack Script (Purple/White Theme)
--- Mobile draggable, scrollable, and touch-friendly
--- Tabs: Silent Aim, ESP, HBE
+-- MVS Hack Menu (Silent Aim + Reliable ESP + Clean Mobile UI)
+-- No Triggerbot. Rebuilt by request.
 
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
--- Main GUI setup
-local gui = Instance.new("ScreenGui")
-gui.Name = "MVS_BloodwareUI"
-gui.ResetOnSpawn = false
-gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
--- Color theme
+-- UI Colors
 local purple = Color3.fromRGB(140, 0, 255)
 local white = Color3.fromRGB(255, 255, 255)
 
--- Draggable MVS button
-local toggleButton = Instance.new("TextButton", gui)
-toggleButton.Size = UDim2.new(0, 60, 0, 30)
-toggleButton.Position = UDim2.new(0, 10, 0.5, -15)
-toggleButton.Text = "MVS"
-toggleButton.BackgroundColor3 = purple
-toggleButton.TextColor3 = white
-toggleButton.TextSize = 18
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.BorderSizePixel = 0
+-- UI Base
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "MVS_UI"
+gui.ResetOnSpawn = false
 
--- Drag logic
-local dragging, dragInput, dragStart, startPos
-toggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = toggleButton.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        toggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
+-- Toggle button (Draggable)
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 60, 0, 30)
+toggleBtn.Position = UDim2.new(0, 10, 0.5, -15)
+toggleBtn.Text = "MVS"
+toggleBtn.TextColor3 = white
+toggleBtn.BackgroundColor3 = purple
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 16
+toggleBtn.Active = true
+toggleBtn.Draggable = true
 
 -- Main Frame
-local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 420, 0, 320)
-mainFrame.Position = UDim2.new(0, 80, 0.5, -160)
-mainFrame.BackgroundColor3 = purple
-mainFrame.Visible = false
-mainFrame.BorderSizePixel = 0
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 400, 0, 320)
+frame.Position = UDim2.new(0, 80, 0.5, -160)
+frame.BackgroundColor3 = purple
+frame.Visible = false
 
--- Sidebar
-local sidebar = Instance.new("Frame", mainFrame)
-sidebar.Size = UDim2.new(0, 100, 1, 0)
-sidebar.BackgroundColor3 = Color3.fromRGB(110, 0, 200)
-sidebar.BorderSizePixel = 0
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.new(1, -20, 1, -20)
+scroll.Position = UDim2.new(0, 10, 0, 10)
+scroll.CanvasSize = UDim2.new(0, 0, 2, 0)
+scroll.ScrollBarThickness = 5
+scroll.BackgroundTransparency = 1
 
--- Tab buttons
-local tabButtons = {}
-local function createSidebarButton(name, callback)
-    local btn = Instance.new("TextButton", sidebar)
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.Text = name
-    btn.TextColor3 = white
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 16
-    btn.BackgroundTransparency = 1
-    btn.MouseButton1Click:Connect(callback)
-    table.insert(tabButtons, btn)
-end
-
--- Scrollable content area
-local contentFrame = Instance.new("ScrollingFrame", mainFrame)
-contentFrame.Position = UDim2.new(0, 110, 0, 10)
-contentFrame.Size = UDim2.new(1, -120, 1, -20)
-contentFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
-contentFrame.ScrollBarThickness = 6
-contentFrame.BackgroundTransparency = 1
-
-local layout = Instance.new("UIListLayout", contentFrame)
+local layout = Instance.new("UIListLayout", scroll)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 8)
+layout.Padding = UDim.new(0, 6)
 
--- Button helper
-local function createActionButton(label, func)
-    local btn = Instance.new("TextButton", contentFrame)
-    btn.Size = UDim2.new(1, -10, 0, 40)
-    btn.Text = label
-    btn.TextColor3 = white
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 16
-    btn.BackgroundColor3 = Color3.fromRGB(100, 0, 180)
-    btn.BorderSizePixel = 0
-    btn.MouseButton1Click:Connect(func)
+-- Button Helper
+local function createButton(text, callback)
+    local b = Instance.new("TextButton", scroll)
+    b.Size = UDim2.new(1, -10, 0, 40)
+    b.Text = text
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 16
+    b.TextColor3 = white
+    b.BackgroundColor3 = Color3.fromRGB(100, 0, 180)
+    b.BorderSizePixel = 0
+    b.MouseButton1Click:Connect(callback)
+    return b
 end
 
 -- ESP Setup
-local espEnabled = false
+local espOn = false
 local espColor = Color3.fromRGB(255, 0, 0)
-local espBoxes = {}
+local highlights = {}
 
 local function updateESP()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            if not espBoxes[player.Name] then
-                local h = Instance.new("Highlight", gui)
-                h.Adornee = player.Character
-                h.FillColor = espColor
-                h.FillTransparency = 0.6
-                h.OutlineColor = white
-                espBoxes[player.Name] = h
+            if not highlights[player.Name] then
+                local hl = Instance.new("Highlight", gui)
+                hl.Name = "ESP_" .. player.Name
+                hl.Adornee = player.Character
+                hl.FillColor = espColor
+                hl.FillTransparency = 0.6
+                hl.OutlineColor = white
+                highlights[player.Name] = hl
+            else
+                highlights[player.Name].Adornee = player.Character
             end
         end
     end
 end
 
-local function disableESP()
-    for _, h in pairs(espBoxes) do
-        if h then h:Destroy() end
+local function clearESP()
+    for _, v in pairs(highlights) do
+        v:Destroy()
     end
-    espBoxes = {}
+    highlights = {}
 end
 
 RunService.RenderStepped:Connect(function()
-    if espEnabled then updateESP() else disableESP() end
+    if espOn then
+        updateESP()
+    else
+        clearESP()
+    end
 end)
 
--- Hitbox
+-- Hitbox Expander
 local hitboxSize = 2
 RunService.RenderStepped:Connect(function()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local part = player.Character.HumanoidRootPart
-            part.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-            part.Transparency = 0.5
-            part.Material = Enum.Material.ForceField
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = p.Character.HumanoidRootPart
+            hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+            hrp.Material = Enum.Material.ForceField
+            hrp.Transparency = 0.5
         end
     end
 end)
 
--- Silent Aim
+-- Silent Aim Logic (Gun & Knife Redirect)
 local silentAim = false
-local function getTarget()
+
+local function getClosestTarget()
     local closest, dist = nil, math.huge
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local pos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-            if onScreen then
-                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if mag < dist then
-                    dist = mag
-                    closest = player
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local pos, visible = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if visible then
+                local diff = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if diff < dist then
+                    dist = diff
+                    closest = p
                 end
             end
         end
@@ -165,60 +133,67 @@ local function getTarget()
     return closest
 end
 
+-- Hook for Silent Aim (tool click)
 Mouse.Button1Down:Connect(function()
-    if silentAim then
-        local target = getTarget()
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            Mouse.Target = target.Character.HumanoidRootPart
+    if not silentAim then return end
+    local target = getClosestTarget()
+    if not target then return end
+
+    -- Try to detect weapon
+    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if not tool then return end
+
+    local remote = tool:FindFirstChildWhichIsA("RemoteEvent") or tool:FindFirstChildWhichIsA("RemoteFunction")
+    if remote then
+        local hrp = target.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local pos = hrp.Position
+            -- Fire remote (generic handler)
+            if remote:IsA("RemoteEvent") then
+                remote:FireServer(pos, hrp)
+            elseif remote:IsA("RemoteFunction") then
+                remote:InvokeServer(pos, hrp)
+            end
         end
     end
 end)
 
--- Sidebar tabs
-createSidebarButton("Silent Aim", function()
-    contentFrame:ClearAllChildren()
-    layout = Instance.new("UIListLayout", contentFrame)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 8)
-
-    createActionButton("Toggle Silent Aim", function()
-        silentAim = not silentAim
-    end)
+-- Buttons
+createButton("Toggle Silent Aim", function()
+    silentAim = not silentAim
 end)
 
-createSidebarButton("ESP", function()
-    contentFrame:ClearAllChildren()
-    layout = Instance.new("UIListLayout", contentFrame)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 8)
-
-    createActionButton("Toggle ESP", function()
-        espEnabled = not espEnabled
-    end)
-    createActionButton("Purple", function() espColor = Color3.fromRGB(140, 0, 255) end)
-    createActionButton("Red", function() espColor = Color3.fromRGB(255, 0, 0) end)
-    createActionButton("Blue", function() espColor = Color3.fromRGB(0, 100, 255) end)
-    createActionButton("Green", function() espColor = Color3.fromRGB(0, 255, 100) end)
+createButton("Toggle ESP", function()
+    espOn = not espOn
 end)
 
-createSidebarButton("HBE", function()
-    contentFrame:ClearAllChildren()
-    layout = Instance.new("UIListLayout", contentFrame)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 8)
+createButton("Set ESP Color: Purple", function()
+    espColor = purple
+end)
 
-    createActionButton("Increase Hitbox", function()
-        hitboxSize = math.clamp(hitboxSize + 1, 2, 10)
-    end)
-    createActionButton("Reset Hitbox", function()
-        hitboxSize = 2
-    end)
+createButton("Set ESP Color: Red", function()
+    espColor = Color3.fromRGB(255, 0, 0)
+end)
+
+createButton("Set ESP Color: Blue", function()
+    espColor = Color3.fromRGB(0, 100, 255)
+end)
+
+createButton("Set ESP Color: Green", function()
+    espColor = Color3.fromRGB(0, 255, 100)
+end)
+
+createButton("Increase Hitbox Size", function()
+    hitboxSize = math.clamp(hitboxSize + 1, 2, 10)
+end)
+
+createButton("Reset Hitbox", function()
+    hitboxSize = 2
 end)
 
 -- Toggle GUI
-toggleButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
+toggleBtn.MouseButton1Click:Connect(function()
+    frame.Visible = not frame.Visible
 end)
 
--- Load default tab
-tabButtons[1].MouseButton1Click:Fire()
+print("✅ MVS Hack Menu loaded. Clean UI. Working ESP + Silent Aim.")
